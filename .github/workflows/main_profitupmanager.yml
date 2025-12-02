@@ -49,8 +49,9 @@ jobs:
       - name: Deploy to Azure Web App
         uses: azure/webapps-deploy@v3
         with:
-          app-name: 'TU_APP_SERVICE_FRONTEND'
+          app-name: 'ProfitUpManager-web'
           package: .
           publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_FRONTEND }}
 
           
+
