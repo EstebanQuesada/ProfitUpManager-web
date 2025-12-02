@@ -19,7 +19,14 @@ export type Me = {
 
 export type LoginInput = { correo: string; password: string };
 
-const API = process.env.NEXT_PUBLIC_API_BASE_URL ?? "";
+// Base de la API desde el .env, sin "/" al final
+const RAW_API = process.env.NEXT_PUBLIC_API_BASE_URL ?? "";
+const API = RAW_API.replace(/\/+$/, "");
+
+// Segmento base de los endpoints de auth en tu API.
+// Si tu API expone /auth/login directamente, cambia esto a "/auth".
+const AUTH_PATH = "/api/auth";
+
 export const TOKEN_KEY = "auth_token";
 
 type SessionContextValue = {
@@ -45,6 +52,14 @@ function useProvideSession(): SessionContextValue {
   const [me, setMe] = useState<Me | null>(null);
   const [ready, setReady] = useState<boolean>(false);
 
+  // Aviso si no hay API configurada
+  if (!API && typeof window !== "undefined") {
+    console.warn(
+      "[Session] NEXT_PUBLIC_API_BASE_URL no está definido; las llamadas usarán rutas relativas y fallarán en producción."
+    );
+  }
+
+  // Carga inicial del token de localStorage
   useEffect(() => {
     if (typeof window === "undefined") return;
 
@@ -53,10 +68,11 @@ function useProvideSession(): SessionContextValue {
       setToken(stored);
     } else {
       setMe(null);
-      setReady(true); 
+      setReady(true);
     }
   }, []);
 
+  // Cada vez que cambia el token, validamos contra /api/auth/me
   useEffect(() => {
     let abort = false;
 
@@ -70,7 +86,7 @@ function useProvideSession(): SessionContextValue {
       setReady(false);
 
       try {
-        const res = await fetch(`${API}/auth/me`, {
+        const res = await fetch(`${API}${AUTH_PATH}/me`, {
           headers: { Authorization: `Bearer ${token}` },
         });
 
@@ -83,9 +99,12 @@ function useProvideSession(): SessionContextValue {
           setMe(data);
           setReady(true);
         }
-      } catch {
+      } catch (err) {
         if (!abort) {
-          localStorage.removeItem(TOKEN_KEY);
+          console.warn("[Session] Error validando token, limpiando sesión:", err);
+          if (typeof window !== "undefined") {
+            localStorage.removeItem(TOKEN_KEY);
+          }
           setToken(null);
           setMe(null);
           setReady(true);
@@ -102,16 +121,22 @@ function useProvideSession(): SessionContextValue {
 
   const login = useCallback(
     async ({ correo, password }: LoginInput) => {
+      if (!API) {
+        throw new Error(
+          "NEXT_PUBLIC_API_BASE_URL no está configurada en el frontend."
+        );
+      }
+
       let res: Response;
 
       try {
-        res = await fetch(`${API}/auth/login`, {
+        res = await fetch(`${API}${AUTH_PATH}/login`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ Correo: correo, Password: password }),
         });
       } catch (err) {
-        console.error("Error de red llamando /auth/login", err);
+        console.error("Error de red llamando /login", err);
         throw new Error(
           "No se pudo conectar con el servidor. Verifica que la API esté levantada."
         );
@@ -123,17 +148,21 @@ function useProvideSession(): SessionContextValue {
           const e = await res.json();
           if (e?.message) msg = e.message;
         } catch {
+          // ignoramos errores al parsear el cuerpo
         }
         throw new Error(msg);
       }
 
       const data: { token: string; expireAt: string } = await res.json();
 
-      localStorage.setItem(TOKEN_KEY, data.token);
-      setToken(data.token); 
+      if (typeof window !== "undefined") {
+        localStorage.setItem(TOKEN_KEY, data.token);
+      }
+      setToken(data.token);
 
+      // Intentamos cargar el usuario actual
       try {
-        const meRes = await fetch(`${API}/auth/me`, {
+        const meRes = await fetch(`${API}${AUTH_PATH}/me`, {
           headers: { Authorization: `Bearer ${data.token}` },
         });
         if (meRes.ok) {
@@ -141,7 +170,7 @@ function useProvideSession(): SessionContextValue {
           setMe(meData);
         }
       } catch (err) {
-        console.error("Error cargando /auth/me después de login", err);
+        console.error("Error cargando /me después de login", err);
       }
 
       return true;
@@ -151,14 +180,16 @@ function useProvideSession(): SessionContextValue {
 
   const logout = useCallback(async () => {
     try {
-      if (token) {
-        await fetch(`${API}/auth/logout`, {
+      if (token && API) {
+        await fetch(`${API}${AUTH_PATH}/logout`, {
           method: "POST",
           headers: { Authorization: `Bearer ${token}` },
         });
       }
     } finally {
-      localStorage.removeItem(TOKEN_KEY);
+      if (typeof window !== "undefined") {
+        localStorage.removeItem(TOKEN_KEY);
+      }
       setToken(null);
       setMe(null);
       setReady(true);
@@ -168,7 +199,10 @@ function useProvideSession(): SessionContextValue {
   const isAuthenticated = !!me && !!token;
 
   const authHeader = useMemo<Record<string, string>>(
-    () => (token ? { Authorization: `Bearer ${token}` } : ({} as Record<string, string>)),
+    () =>
+      token
+        ? { Authorization: `Bearer ${token}` }
+        : ({} as Record<string, string>),
     [token]
   );
 

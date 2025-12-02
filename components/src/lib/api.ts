@@ -1,8 +1,11 @@
 
-
 export const API_BASE = (process.env.NEXT_PUBLIC_API_BASE_URL ?? "").replace(/\/+$/, "");
 
-export type ApiError = { status: number; message: string; raw?: any };
+export type ApiError = {
+  status: number;
+  message: string;
+  raw?: any;
+};
 
 function buildUrl(path: string): string {
   if (/^https?:\/\//i.test(path)) return path;
@@ -13,8 +16,8 @@ function buildUrl(path: string): string {
 function getBearer(token?: string): string | undefined {
   if (token) return `Bearer ${token}`;
   if (typeof window !== "undefined") {
-    const t = localStorage.getItem("token");
-    if (t) return `Bearer ${t}`;
+    const stored = localStorage.getItem("token");
+    if (stored) return `Bearer ${stored}`;
   }
   return undefined;
 }
@@ -28,19 +31,33 @@ export async function apiFetch<T>(
 
   const headers = new Headers(options.headers ?? {});
   const bearer = getBearer(token);
-  if (bearer && !headers.has("Authorization")) headers.set("Authorization", bearer);
+
+  if (bearer && !headers.has("Authorization")) {
+    headers.set("Authorization", bearer);
+  }
 
   const hasBody = options.body !== undefined;
-  if (hasBody && !headers.has("Content-Type")) headers.set("Content-Type", "application/json");
-  if (!headers.has("Accept")) headers.set("Accept", "application/json");
+
+  if (hasBody && !headers.has("Content-Type") && !(options.body instanceof FormData)) {
+    headers.set("Content-Type", "application/json");
+  }
+
+  if (!headers.has("Accept")) {
+    headers.set("Accept", "application/json");
+  }
 
   const init: RequestInit = {
-    credentials: options.credentials ?? "include",
+    credentials: options.credentials ?? "same-origin",
     ...options,
     headers
   };
 
-  if (hasBody && options.body && typeof options.body !== "string" && !(options.body instanceof FormData)) {
+  if (
+    hasBody &&
+    options.body &&
+    typeof options.body !== "string" &&
+    !(options.body instanceof FormData)
+  ) {
     init.body = JSON.stringify(options.body);
   }
 
@@ -52,11 +69,15 @@ export async function apiFetch<T>(
       if (ct.includes("application/json")) {
         const j = await res.json();
         const msg =
-          j?.title || j?.detail || j?.message || j?.error || (typeof j === "string" ? j : `HTTP ${res.status}`);
+          j?.title ||
+          j?.detail ||
+          j?.message ||
+          j?.error ||
+          (typeof j === "string" ? j : `HTTP ${res.status}`);
         return { message: msg, raw: j };
       }
       const t = await res.text();
-      return { message: t || `HTTP ${res.status}` };
+      return { message: t || `HTTP ${res.status}`, raw: t };
     } catch {
       return { message: `HTTP ${res.status}` };
     }
@@ -64,14 +85,16 @@ export async function apiFetch<T>(
 
   if (!res.ok) {
     const { message, raw } = await parseProblem();
-    if (res.status === 401) {
-      console.warn("401 sin autorización. Token presente?:", !!bearer);
-    }
     const err: ApiError = { status: res.status, message, raw };
+    if (res.status === 401) {
+      console.warn("401 No autorizado. ¿Token presente?:", !!bearer);
+    }
     throw err;
   }
 
-  if (res.status === 204 || res.status === 205) return {} as T;
+  if (res.status === 204 || res.status === 205) {
+    return {} as T;
+  }
 
   const ct = res.headers.get("content-type") || "";
   if (ct.includes("application/json")) {
