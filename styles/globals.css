@@ -1,0 +1,87 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --color-primary: #A30862;                  
+  --color-primary-foreground: #ffffff;
+
+  --color-secondary: #1E2E13;             
+
+  --color-background: #ffffff;
+  --color-surface: #f8fafc;
+
+  --color-danger: #6C0F1C;                   
+  --color-danger-foreground: #ffffff;
+
+  --color-success: #95B64F;                  
+  --color-success-foreground: #0b0b0d;
+}
+
+:root { color-scheme: light; }
+html.dark { 
+  color-scheme: dark;
+
+  --color-background: #0B0F0E;               
+  --color-surface: #121618;                  
+
+  --color-secondary: #E6E9EA;               
+
+  --color-primary: #A30862;
+  --color-primary-foreground: #0b0b0d;
+
+  --color-danger: #6C0F1C;
+  --color-danger-foreground: #0b0b0d;
+
+  --color-success: #95B64F;
+  --color-success-foreground: #0b0b0d;
+}
+
+*,
+*::before,
+*::after { box-sizing: border-box; }
+
+html, body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+html, body {
+  background-color: var(--color-background);
+  color: var(--color-secondary);
+}
+
+.bg-primary     { background-color: var(--color-primary) !important; color: var(--color-primary-foreground) !important; }
+.bg-secondary   { background-color: var(--color-secondary) !important; color: #0b0b0d !important; }
+.bg-alt         { background-color: var(--color-surface) !important; }
+
+.text-primary   { color: var(--color-primary) !important; }
+.text-secondary { color: var(--color-secondary) !important; }
+
+.text-error     { color: var(--color-danger) !important; }
+.text-success   { color: var(--color-success) !important; }
+
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  z-index: 99999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.modal-card {
+  background: var(--color-background);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+  width: min(920px, calc(100% - 32px));
+  max-height: 90vh;
+  overflow: auto;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.25);
+  padding: 16px;
+}
+
+html.dark .modal-card {
+  border-color: rgba(255, 255, 255, 0.12);
+}
