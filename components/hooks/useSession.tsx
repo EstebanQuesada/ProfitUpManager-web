@@ -19,13 +19,32 @@ export type Me = {
 
 export type LoginInput = { correo: string; password: string };
 
-// Base de la API desde el .env, sin "/" al final
-const RAW_API = process.env.NEXT_PUBLIC_API_BASE_URL ?? "";
+// =======================
+// Config de API / Auth
+// =======================
+
+// URL por defecto de la API en Azure (respaldo)
+const FALLBACK_API =
+  "https://profitup-api-azcjazf3hxf5d3ba.canadacentral-01.azurewebsites.net";
+
+// Tomamos la del .env o usamos el fallback
+const RAW_API = (process.env.NEXT_PUBLIC_API_BASE_URL || FALLBACK_API).trim();
+
+// Aviso si la env no está configurada (solo en navegador)
+if (!process.env.NEXT_PUBLIC_API_BASE_URL && typeof window !== "undefined") {
+  console.warn(
+    "[Session] NEXT_PUBLIC_API_BASE_URL no está definido; usando URL por defecto:",
+    FALLBACK_API
+  );
+}
+
+// Base de la API sin "/" al final
 const API = RAW_API.replace(/\/+$/, "");
 
 // Segmento base de los endpoints de auth en tu API.
-// Si tu API expone /auth/login directamente, cambia esto a "/auth".
-const AUTH_PATH = "/api/auth";
+// Si tus endpoints son /auth/login, /auth/me, etc. -> "/auth"
+// Si fueran /api/auth/login, /api/auth/me -> cámbialo a "/api/auth"
+const AUTH_PATH = "/auth";
 
 export const TOKEN_KEY = "auth_token";
 
@@ -52,13 +71,6 @@ function useProvideSession(): SessionContextValue {
   const [me, setMe] = useState<Me | null>(null);
   const [ready, setReady] = useState<boolean>(false);
 
-  // Aviso si no hay API configurada
-  if (!API && typeof window !== "undefined") {
-    console.warn(
-      "[Session] NEXT_PUBLIC_API_BASE_URL no está definido; las llamadas usarán rutas relativas y fallarán en producción."
-    );
-  }
-
   // Carga inicial del token de localStorage
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -72,7 +84,7 @@ function useProvideSession(): SessionContextValue {
     }
   }, []);
 
-  // Cada vez que cambia el token, validamos contra /api/auth/me
+  // Cada vez que cambia el token, validamos contra /auth/me
   useEffect(() => {
     let abort = false;
 
@@ -101,7 +113,10 @@ function useProvideSession(): SessionContextValue {
         }
       } catch (err) {
         if (!abort) {
-          console.warn("[Session] Error validando token, limpiando sesión:", err);
+          console.warn(
+            "[Session] Error validando token, limpiando sesión:",
+            err
+          );
           if (typeof window !== "undefined") {
             localStorage.removeItem(TOKEN_KEY);
           }
@@ -121,12 +136,6 @@ function useProvideSession(): SessionContextValue {
 
   const login = useCallback(
     async ({ correo, password }: LoginInput) => {
-      if (!API) {
-        throw new Error(
-          "NEXT_PUBLIC_API_BASE_URL no está configurada en el frontend."
-        );
-      }
-
       let res: Response;
 
       try {
@@ -180,7 +189,7 @@ function useProvideSession(): SessionContextValue {
 
   const logout = useCallback(async () => {
     try {
-      if (token && API) {
+      if (token) {
         await fetch(`${API}${AUTH_PATH}/logout`, {
           method: "POST",
           headers: { Authorization: `Bearer ${token}` },
