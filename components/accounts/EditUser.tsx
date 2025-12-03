@@ -179,7 +179,7 @@ export const EditUser: React.FC<Props> = ({ user, onSaved, onClose }) => {
             </select>
           </label>
         </div>
-c
+
         <div className="mx-6 my-6 flex items-center justify-end gap-2">
           <Button
             type="button"
