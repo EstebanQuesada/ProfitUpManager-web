@@ -7,10 +7,8 @@
     "\\components\\sidebar",
     "\\pages",
     "\\pages\\inventario",
-    "\\pages\\inventario\\producto",
     "\\pages\\reportes",
     "\\pages\\vencimientos"
   ],
-  "SelectedNode": "\\pages\\vencimientos\\gestionar.tsx",
   "PreviewInSolutionExplorer": false
 }
