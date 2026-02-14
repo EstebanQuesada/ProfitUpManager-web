@@ -28,14 +28,14 @@ jobs:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
           action: "upload"
 
-          # ✅ RUTA DEL FRONT (si está en la raíz, se queda "/")
+          # ✅ si tu Next está en la raíz del repo
           app_location: "/"
 
-          # ✅ No estás desplegando Functions aquí
+          # ✅ sin API de functions
           api_location: ""
 
-          # ✅ Next export genera "out" (NO build)
-          output_location: "out"
+          # ✅ Next build output
+          output_location: ".next"
 
   close_pull_request_job:
     if: github.event_name == 'pull_request' && github.event.action == 'closed'
