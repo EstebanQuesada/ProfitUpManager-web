@@ -5,6 +5,8 @@
    "scripts": {
       "dev": "next dev",
       "build": "next build",
+      "export": "next export",
+      "build:swa": "next build && next export",
       "start": "next start",
       "lint": "next lint"
    },
@@ -19,7 +21,9 @@
       "react-dom": "^18.3.1",
       "recharts": "^3.4.1",
       "swr": "^2.3.6"
+      
    },
+   
    "devDependencies": {
       "@tailwindcss/postcss": "^4.1.11",
       "@types/node": "18.7.18",
@@ -32,4 +36,6 @@
       "tailwindcss": "^3.4.18",
       "typescript": "4.8.3"
    }
+   
+   
 }
