@@ -1,5 +1,7 @@
 import { apiJson } from "../../helpers/apiClient";
 
+const API = process.env.NEXT_PUBLIC_API_BASE_URL!;
+
 export type Role = "Administrador" | "Empleado";
 export type Status = "ACTIVE" | "PAUSED" | "VACATION";
 
@@ -23,35 +25,16 @@ export type UserDto = {
   estadoUsuario?: Status;
 };
 
-// 👇 base relativa: dejamos que apiJson agregue el host correcto
-const BASE = "/auth";
-
-function path(p: string) {
-  return `${BASE}${p}`;
-}
-
 export async function listUsers(authHeader: Record<string, string>) {
-  return apiJson<UserDto[]>(path("/users"), "GET", undefined, authHeader);
+  return apiJson<UserDto[]>(`${API}/auth/users`, "GET", undefined, authHeader);
 }
 
-export async function createUser(
-  input: RegisterInput,
-  authHeader: Record<string, string>
-) {
-  return apiJson<{ usuarioId: number }>(
-    path("/register"),
-    "POST",
-    input,
-    authHeader
-  );
+export async function createUser(input: RegisterInput, authHeader: Record<string, string>) {
+  return apiJson<{ usuarioId: number }>(`${API}/auth/register`, "POST", input, authHeader);
 }
 
-export async function updateUserRole(
-  usuarioId: number,
-  rol: Role,
-  authHeader: Record<string, string>
-) {
-  const url = path(`/users/${usuarioId}/role/${encodeURIComponent(rol)}`);
+export async function updateUserRole(usuarioId: number, rol: Role, authHeader: Record<string, string>) {
+  const url = `${API}/auth/users/${usuarioId}/role/${encodeURIComponent(rol)}`;
   return apiJson<{ usuarioId: number; rol: string }>(url, "PATCH", {}, authHeader);
 }
 
@@ -68,7 +51,7 @@ export async function updateUser(
   payload: UpdateUserInput,
   authHeader: Record<string, string>
 ) {
-  const url = path(`/users/${usuarioId}`);
+  const url = `${API}/auth/users/${usuarioId}`;
   return apiJson<{ usuarioId: number }>(url, "PATCH", payload, authHeader);
 }
 
@@ -77,6 +60,6 @@ export async function setUserStatus(
   status: Status,
   authHeader: Record<string, string>
 ) {
-  const url = path(`/users/${usuarioId}/status/${status}`);
+  const url = `${API}/auth/users/${usuarioId}/status/${status}`;
   return apiJson<{ usuarioId: number; estado: Status }>(url, "PATCH", {}, authHeader);
 }

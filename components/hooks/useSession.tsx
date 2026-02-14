@@ -19,33 +19,7 @@ export type Me = {
 
 export type LoginInput = { correo: string; password: string };
 
-// =======================
-// Config de API / Auth
-// =======================
-
-// URL por defecto de la API en Azure (respaldo)
-const FALLBACK_API =
-  "https://profitup-api-azcjazf3hxf5d3ba.canadacentral-01.azurewebsites.net";
-
-// Tomamos la del .env o usamos el fallback
-const RAW_API = (process.env.NEXT_PUBLIC_API_BASE_URL || FALLBACK_API).trim();
-
-// Aviso si la env no está configurada (solo en navegador)
-if (!process.env.NEXT_PUBLIC_API_BASE_URL && typeof window !== "undefined") {
-  console.warn(
-    "[Session] NEXT_PUBLIC_API_BASE_URL no está definido; usando URL por defecto:",
-    FALLBACK_API
-  );
-}
-
-// Base de la API sin "/" al final
-const API = RAW_API.replace(/\/+$/, "");
-
-// Segmento base de los endpoints de auth en tu API.
-// Si tus endpoints son /auth/login, /auth/me, etc. -> "/auth"
-// Si fueran /api/auth/login, /api/auth/me -> cámbialo a "/api/auth"
-const AUTH_PATH = "/auth";
-
+const API = process.env.NEXT_PUBLIC_API_BASE_URL ?? "";
 export const TOKEN_KEY = "auth_token";
 
 type SessionContextValue = {
@@ -71,7 +45,6 @@ function useProvideSession(): SessionContextValue {
   const [me, setMe] = useState<Me | null>(null);
   const [ready, setReady] = useState<boolean>(false);
 
-  // Carga inicial del token de localStorage
   useEffect(() => {
     if (typeof window === "undefined") return;
 
@@ -80,11 +53,10 @@ function useProvideSession(): SessionContextValue {
       setToken(stored);
     } else {
       setMe(null);
-      setReady(true);
+      setReady(true); 
     }
   }, []);
 
-  // Cada vez que cambia el token, validamos contra /auth/me
   useEffect(() => {
     let abort = false;
 
@@ -98,7 +70,7 @@ function useProvideSession(): SessionContextValue {
       setReady(false);
 
       try {
-        const res = await fetch(`${API}${AUTH_PATH}/me`, {
+        const res = await fetch(`${API}/auth/me`, {
           headers: { Authorization: `Bearer ${token}` },
         });
 
@@ -111,15 +83,9 @@ function useProvideSession(): SessionContextValue {
           setMe(data);
           setReady(true);
         }
-      } catch (err) {
+      } catch {
         if (!abort) {
-          console.warn(
-            "[Session] Error validando token, limpiando sesión:",
-            err
-          );
-          if (typeof window !== "undefined") {
-            localStorage.removeItem(TOKEN_KEY);
-          }
+          localStorage.removeItem(TOKEN_KEY);
           setToken(null);
           setMe(null);
           setReady(true);
@@ -139,13 +105,13 @@ function useProvideSession(): SessionContextValue {
       let res: Response;
 
       try {
-        res = await fetch(`${API}${AUTH_PATH}/login`, {
+        res = await fetch(`${API}/auth/login`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ Correo: correo, Password: password }),
         });
       } catch (err) {
-        console.error("Error de red llamando /login", err);
+        console.error("Error de red llamando /auth/login", err);
         throw new Error(
           "No se pudo conectar con el servidor. Verifica que la API esté levantada."
         );
@@ -157,21 +123,17 @@ function useProvideSession(): SessionContextValue {
           const e = await res.json();
           if (e?.message) msg = e.message;
         } catch {
-          // ignoramos errores al parsear el cuerpo
         }
         throw new Error(msg);
       }
 
       const data: { token: string; expireAt: string } = await res.json();
 
-      if (typeof window !== "undefined") {
-        localStorage.setItem(TOKEN_KEY, data.token);
-      }
-      setToken(data.token);
+      localStorage.setItem(TOKEN_KEY, data.token);
+      setToken(data.token); 
 
-      // Intentamos cargar el usuario actual
       try {
-        const meRes = await fetch(`${API}${AUTH_PATH}/me`, {
+        const meRes = await fetch(`${API}/auth/me`, {
           headers: { Authorization: `Bearer ${data.token}` },
         });
         if (meRes.ok) {
@@ -179,7 +141,7 @@ function useProvideSession(): SessionContextValue {
           setMe(meData);
         }
       } catch (err) {
-        console.error("Error cargando /me después de login", err);
+        console.error("Error cargando /auth/me después de login", err);
       }
 
       return true;
@@ -190,15 +152,13 @@ function useProvideSession(): SessionContextValue {
   const logout = useCallback(async () => {
     try {
       if (token) {
-        await fetch(`${API}${AUTH_PATH}/logout`, {
+        await fetch(`${API}/auth/logout`, {
           method: "POST",
           headers: { Authorization: `Bearer ${token}` },
         });
       }
     } finally {
-      if (typeof window !== "undefined") {
-        localStorage.removeItem(TOKEN_KEY);
-      }
+      localStorage.removeItem(TOKEN_KEY);
       setToken(null);
       setMe(null);
       setReady(true);
@@ -208,10 +168,7 @@ function useProvideSession(): SessionContextValue {
   const isAuthenticated = !!me && !!token;
 
   const authHeader = useMemo<Record<string, string>>(
-    () =>
-      token
-        ? { Authorization: `Bearer ${token}` }
-        : ({} as Record<string, string>),
+    () => (token ? { Authorization: `Bearer ${token}` } : ({} as Record<string, string>)),
     [token]
   );
 
