@@ -4,7 +4,7 @@ const path = require("path");
 const nextConfig = {
   reactStrictMode: true,
 
-  output: "standalone",
+  output: "export",
 
   webpack: (config) => {
     config.resolve.alias = {
