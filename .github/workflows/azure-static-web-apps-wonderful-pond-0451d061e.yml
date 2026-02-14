@@ -14,7 +14,6 @@ jobs:
     if: github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.action != 'closed')
     runs-on: ubuntu-latest
     name: Build and Deploy Job
-
     steps:
       - uses: actions/checkout@v3
         with:
@@ -29,18 +28,22 @@ jobs:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
           action: "upload"
 
-          # ✅ Tu app está en la raíz (según tu foto)
+          # App location (root del repo)
           app_location: "/"
+
+          # No API en Static Web Apps (porque tu API está en App Service aparte)
           api_location: ""
 
-          # ✅ Next export genera la carpeta /out
+          # Next export genera la carpeta /out
           output_location: "out"
+
+          # Forzar build + export (para que exista /out)
+          app_build_command: "npm run build:swa"
 
   close_pull_request_job:
     if: github.event_name == 'pull_request' && github.event.action == 'closed'
     runs-on: ubuntu-latest
     name: Close Pull Request Job
-
     steps:
       - name: Close Pull Request
         id: closepullrequest
